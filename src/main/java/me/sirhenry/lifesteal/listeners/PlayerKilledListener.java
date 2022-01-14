@@ -1,6 +1,7 @@
 package me.sirhenry.lifesteal.listeners;
 
 import me.sirhenry.lifesteal.LifeSteal;
+import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -12,10 +13,11 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.plugin.Plugin;
 
 import javax.security.auth.login.Configuration;
+import java.util.Date;
 
 public class PlayerKilledListener implements Listener {
 
-    Plugin plugin = LifeSteal.getPlugin(LifeSteal.class);
+    LifeSteal plugin = LifeSteal.getPlugin(LifeSteal.class);
 
     @EventHandler
     public void onPlayerKilled(PlayerDeathEvent e) {
@@ -30,12 +32,24 @@ public class PlayerKilledListener implements Listener {
                 double vHealth = victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue();
                 double kHealth = killer.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue();
 
-                victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(vHealth - plugin.getConfig().getDouble("HealthLostOnDeath"));
-                killer.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(kHealth + plugin.getConfig().getDouble("HealthGainedOnKill"));
+                victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(vHealth - plugin.HEALTH_LOSS);
+
+                if(plugin.MAX_HEALTH_ENABLED && kHealth < plugin.MAX_HEALTH)
+                    killer.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(kHealth + plugin.HEALTH_GAIN);
+                else
+                    killer.sendMessage(plugin.MAX_HEALTH_MESSAGE);
+
+
 
                 if(victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue() <= 0.0) {
 
-                    victim.setGameMode(GameMode.SPECTATOR);
+                    if(plugin.SPECTATOR_ON_0_LIVES)
+                        victim.setGameMode(GameMode.SPECTATOR);
+                    else{                                                                                                                 // 6 HOURS
+                        Bukkit.getBanList(BanList.Type.NAME).addBan(victim.getName(),plugin.BAN_MESSAGE,new Date(System.currentTimeMillis()+60*60*1000),"LifeStealPlugin");
+                        victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(plugin.DEFAULT_HEALTH);
+                        victim.kickPlayer(plugin.BAN_MESSAGE);
+                    }
 
                 }
             }
@@ -46,21 +60,20 @@ public class PlayerKilledListener implements Listener {
 
         else {
 
-            if(plugin.getConfig().getBoolean("LoseLifeIfNotKilledByPlayer")) {
-                double vHealth = victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue();
+            if(!plugin.LOSE_LIFE_IF_NOT_KILLED_BY_PLAYER) return;
 
-                victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(vHealth - plugin.getConfig().getDouble("HealthLostOnDeath"));
+            double vHealth = victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue();
 
-                if (victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue() <= 0.0) {
+            victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(vHealth - plugin.HEALTH_LOSS);
 
+            if (victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue() <= 0.0) {
+
+                if(plugin.SPECTATOR_ON_0_LIVES)
                     victim.setGameMode(GameMode.SPECTATOR);
-
-                }
-
-                if(victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue() <= 0.0) {
-
-                    victim.setGameMode(GameMode.SPECTATOR);
-
+                else{                                                                                                                 // 6 HOURS
+                    Bukkit.getBanList(BanList.Type.NAME).addBan(victim.getName(),plugin.BAN_MESSAGE,new Date(System.currentTimeMillis()+60*60*1000),"LifeStealPlugin");
+                    victim.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(plugin.DEFAULT_HEALTH);
+                    victim.kickPlayer(plugin.BAN_MESSAGE);
                 }
 
             }

@@ -8,3 +8,6 @@ website: https://youtube.com/sirhenry
 commands:
   withdraw:
     description: Allows you to give your hearts to other people
+  lifestealreload:
+    description: Reloads the plugin
+    aliases: ['lsrl','lsr']
